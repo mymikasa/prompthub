@@ -6,6 +6,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/mymikasa/prompthub/internal/config"
+	"github.com/mymikasa/prompthub/internal/repo/dao"
+	"github.com/mymikasa/prompthub/internal/service"
 	"github.com/mymikasa/prompthub/internal/web/handler"
 	"github.com/mymikasa/prompthub/internal/web/router"
 	"github.com/mymikasa/prompthub/ioc"
@@ -24,16 +26,26 @@ func main() {
 		os.Exit(1)
 	}
 
+	if err := ioc.Migrate(db); err != nil {
+		slog.Error("run migrate", slog.String("error", err.Error()))
+		os.Exit(1)
+	}
+
 	if cfg.IsDev() {
 		gin.SetMode(gin.DebugMode)
 	} else {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
-	engine := gin.New()
+	userRepo := dao.NewUserDAO(db)
+	workspaceRepo := dao.NewWorkspaceDAO(db)
+	authService := service.NewAuthService(userRepo, workspaceRepo)
 
 	healthHandler := handler.NewHealthHandler(db)
-	router.Setup(engine, healthHandler)
+	authHandler := handler.NewAuthHandler(authService, cfg.SessionSecret, cfg.IsDev())
+
+	engine := gin.New()
+	router.Setup(engine, healthHandler, authHandler, cfg.SessionSecret, userRepo)
 
 	slog.Info("server starting", slog.String("addr", cfg.HTTPAddr))
 	if err := engine.Run(cfg.HTTPAddr); err != nil {
