@@ -14,11 +14,11 @@ import (
 var ErrUserNotFound = errors.New("user not found")
 
 type AuthService struct {
-	userRepo      repo.UserRepo
-	workspaceRepo repo.WorkspaceRepo
+	userRepo      *repo.UserRepo
+	workspaceRepo *repo.WorkspaceRepo
 }
 
-func NewAuthService(userRepo repo.UserRepo, workspaceRepo repo.WorkspaceRepo) *AuthService {
+func NewAuthService(userRepo *repo.UserRepo, workspaceRepo *repo.WorkspaceRepo) *AuthService {
 	return &AuthService{
 		userRepo:      userRepo,
 		workspaceRepo: workspaceRepo,

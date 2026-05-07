@@ -3,8 +3,7 @@ package dao
 import (
 	"context"
 
-	"github.com/mymikasa/prompthub/internal/domain"
-	"github.com/mymikasa/prompthub/internal/repo"
+	"github.com/mymikasa/prompthub/internal/repo/dao/model"
 	"gorm.io/gorm"
 )
 
@@ -12,26 +11,26 @@ type UserDAO struct {
 	db *gorm.DB
 }
 
-func NewUserDAO(db *gorm.DB) repo.UserRepo {
+func NewUserDAO(db *gorm.DB) *UserDAO {
 	return &UserDAO{db: db}
 }
 
-func (d *UserDAO) FindByEmail(ctx context.Context, email string) (*domain.User, error) {
-	var user domain.User
-	if err := d.db.WithContext(ctx).Where("email = ?", email).First(&user).Error; err != nil {
+func (d *UserDAO) FindByEmail(ctx context.Context, email string) (*model.User, error) {
+	var m model.User
+	if err := d.db.WithContext(ctx).Where("email = ?", email).First(&m).Error; err != nil {
 		return nil, err
 	}
-	return &user, nil
+	return &m, nil
 }
 
-func (d *UserDAO) Create(ctx context.Context, user *domain.User) error {
-	return d.db.WithContext(ctx).Create(user).Error
+func (d *UserDAO) Create(ctx context.Context, m *model.User) error {
+	return d.db.WithContext(ctx).Create(m).Error
 }
 
-func (d *UserDAO) FindByID(ctx context.Context, id int64) (*domain.User, error) {
-	var user domain.User
-	if err := d.db.WithContext(ctx).First(&user, id).Error; err != nil {
+func (d *UserDAO) FindByID(ctx context.Context, id int64) (*model.User, error) {
+	var m model.User
+	if err := d.db.WithContext(ctx).First(&m, id).Error; err != nil {
 		return nil, err
 	}
-	return &user, nil
+	return &m, nil
 }

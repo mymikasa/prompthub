@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/mymikasa/prompthub/internal/config"
+	"github.com/mymikasa/prompthub/internal/repo"
 	"github.com/mymikasa/prompthub/internal/repo/dao"
 	"github.com/mymikasa/prompthub/internal/service"
 	"github.com/mymikasa/prompthub/internal/web/handler"
@@ -37,8 +38,12 @@ func main() {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
-	userRepo := dao.NewUserDAO(db)
-	workspaceRepo := dao.NewWorkspaceDAO(db)
+	userDAO := dao.NewUserDAO(db)
+	workspaceDAO := dao.NewWorkspaceDAO(db)
+
+	userRepo := repo.NewUserRepo(userDAO)
+	workspaceRepo := repo.NewWorkspaceRepo(workspaceDAO)
+
 	authService := service.NewAuthService(userRepo, workspaceRepo)
 
 	healthHandler := handler.NewHealthHandler(db)
