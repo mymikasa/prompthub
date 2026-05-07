@@ -1,0 +1,8 @@
+.git
+.env
+.claude
+node_modules
+frontend/node_modules
+backend/__debug_*
+*.md
+!docs/
