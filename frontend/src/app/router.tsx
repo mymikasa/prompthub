@@ -9,6 +9,7 @@ import { PromptDetailPage } from '@/features/prompts/prompt-detail-page';
 import { VersionDetailPage } from '@/features/prompts/version-detail-page';
 import { CreatePromptPage } from '@/features/prompts/create-prompt-page';
 import { SettingsPage } from '@/features/settings/settings-page';
+import { RunsPage } from '@/features/runs/runs-page';
 
 export const router = createBrowserRouter([
   {
@@ -45,11 +46,7 @@ export const router = createBrowserRouter([
       },
       {
         path: '/runs',
-        element: (
-          <div className="flex items-center justify-center py-20 text-text-muted text-sm">
-            运行记录页（开发中）
-          </div>
-        ),
+        element: <RunsPage />,
       },
       {
         path: '/settings',
