@@ -22,10 +22,10 @@ var (
 )
 
 type PromptService struct {
-	promptRepo       repo.PromptRepo
-	tagRepo          repo.TagRepo
-	variableRepo     repo.VariableRepo
-	versionRepo      repo.VersionRepo
+	promptRepo         repo.PromptRepo
+	tagRepo            repo.TagRepo
+	variableRepo       repo.VariableRepo
+	versionRepo        repo.VersionRepo
 	providerConfigRepo repo.ProviderConfigRepo
 }
 
@@ -442,19 +442,21 @@ func (s *PromptService) RenderPrompt(ctx context.Context, actor *domain.Actor, p
 	case "chat_messages":
 		var msgs []ChatMessage
 		if err := json.Unmarshal([]byte(p.Body), &msgs); err != nil {
-			return nil, fmt.Errorf("invalid chat messages format: %w", err)
-		}
-		var sb strings.Builder
-		for i, m := range msgs {
-			m.Content = replaceVars(m.Content, resolved)
-			msgs[i] = m
-			sb.WriteString(m.Content)
-			if i < len(msgs)-1 {
-				sb.WriteString("\n")
+			result.Content = replaceVars(p.Body, resolved)
+			result.Messages = nil
+		} else {
+			var sb strings.Builder
+			for i, m := range msgs {
+				m.Content = replaceVars(m.Content, resolved)
+				msgs[i] = m
+				sb.WriteString(m.Content)
+				if i < len(msgs)-1 {
+					sb.WriteString("\n")
+				}
 			}
+			result.Messages = msgs
+			result.Content = sb.String()
 		}
-		result.Messages = msgs
-		result.Content = sb.String()
 	}
 
 	return result, nil

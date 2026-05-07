@@ -10,9 +10,12 @@ import (
 	"github.com/mymikasa/prompthub/internal/repo/dao/model"
 )
 
+type RunFilter = dao.RunFilter
+
 type PromptRunRepo interface {
 	Create(ctx context.Context, run *domain.PromptRun) error
-	FindByPromptID(ctx context.Context, promptID int64, page, pageSize int) ([]*domain.PromptRun, int64, error)
+	FindByPromptID(ctx context.Context, promptID int64, page, pageSize int, filter RunFilter) ([]*domain.PromptRun, int64, error)
+	FindByWorkspace(ctx context.Context, workspaceID int64, page, pageSize int, filter RunFilter) ([]*domain.PromptRun, int64, error)
 }
 
 type promptRunRepo struct {
@@ -36,17 +39,30 @@ func (r *promptRunRepo) Create(ctx context.Context, run *domain.PromptRun) error
 	return nil
 }
 
-func (r *promptRunRepo) FindByPromptID(ctx context.Context, promptID int64, page, pageSize int) ([]*domain.PromptRun, int64, error) {
-	items, total, err := r.dao.FindByPromptID(ctx, promptID, page, pageSize)
+func (r *promptRunRepo) FindByPromptID(ctx context.Context, promptID int64, page, pageSize int, filter RunFilter) ([]*domain.PromptRun, int64, error) {
+	items, total, err := r.dao.FindByPromptID(ctx, promptID, page, pageSize, filter)
 	if err != nil {
 		return nil, 0, err
 	}
+	return toDomainRuns(items, total)
+}
+
+func (r *promptRunRepo) FindByWorkspace(ctx context.Context, workspaceID int64, page, pageSize int, filter RunFilter) ([]*domain.PromptRun, int64, error) {
+	items, total, err := r.dao.FindByWorkspace(ctx, workspaceID, page, pageSize, filter)
+	if err != nil {
+		return nil, 0, err
+	}
+	return toDomainRuns(items, total)
+}
+
+func toDomainRuns(items []*model.PromptRun, total int64) ([]*domain.PromptRun, int64, error) {
 	result := make([]*domain.PromptRun, len(items))
 	for i, m := range items {
-		result[i], err = toDomainPromptRun(m)
+		r, err := toDomainPromptRun(m)
 		if err != nil {
 			return nil, 0, err
 		}
+		result[i] = r
 	}
 	return result, total, nil
 }

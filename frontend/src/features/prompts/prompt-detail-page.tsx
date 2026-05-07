@@ -169,7 +169,7 @@ export function PromptDetailPage() {
         {activeTab === 'editor' && <EditorTab prompt={prompt} />}
         {activeTab === 'variables' && <VariablesTab prompt={prompt} />}
         {activeTab === 'test-cases' && <TestCasesTab prompt={prompt} />}
-        {activeTab === 'runs' && <RunsTab promptId={prompt.id} />}
+        {activeTab === 'runs' && <RunsTab prompt={prompt} />}
         {activeTab === 'versions' && <VersionsTab promptId={prompt.id} />}
       </div>
     </div>

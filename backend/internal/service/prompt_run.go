@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"time"
 
 	"github.com/mymikasa/prompthub/internal/domain"
 	"github.com/mymikasa/prompthub/internal/repo"
@@ -165,9 +166,31 @@ func (s *PromptRunService) Run(ctx context.Context, actor *domain.Actor, promptI
 	return &RunPromptResult{Run: run}, nil
 }
 
-func (s *PromptRunService) ListRuns(ctx context.Context, actor *domain.Actor, promptID int64, page, pageSize int) ([]*domain.PromptRun, int64, error) {
+func (s *PromptRunService) ListRuns(ctx context.Context, actor *domain.Actor, promptID int64, page, pageSize int, status, model, startDate, endDate string) ([]*domain.PromptRun, int64, error) {
 	if _, err := s.promptSvc.GetPrompt(ctx, actor, promptID); err != nil {
 		return nil, 0, err
 	}
-	return s.runRepo.FindByPromptID(ctx, promptID, page, pageSize)
+	filter := buildRunFilter(status, model, startDate, endDate)
+	return s.runRepo.FindByPromptID(ctx, promptID, page, pageSize, filter)
+}
+
+func (s *PromptRunService) ListAllRuns(ctx context.Context, actor *domain.Actor, page, pageSize int, status, model, startDate, endDate string) ([]*domain.PromptRun, int64, error) {
+	filter := buildRunFilter(status, model, startDate, endDate)
+	return s.runRepo.FindByWorkspace(ctx, actor.WorkspaceID, page, pageSize, filter)
+}
+
+func buildRunFilter(status, model, startDate, endDate string) repo.RunFilter {
+	f := repo.RunFilter{Status: status, Model: model}
+	if startDate != "" {
+		if t, err := time.Parse("2006-01-02", startDate); err == nil {
+			f.StartDate = &t
+		}
+	}
+	if endDate != "" {
+		if t, err := time.Parse("2006-01-02", endDate); err == nil {
+			t = t.Add(24 * time.Hour)
+			f.EndDate = &t
+		}
+	}
+	return f
 }

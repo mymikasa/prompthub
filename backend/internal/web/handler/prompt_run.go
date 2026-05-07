@@ -19,6 +19,8 @@ func (h *PromptRunHandler) Register(rg *gin.RouterGroup) {
 	prompts := rg.Group("/api/prompts")
 	prompts.POST("/:id/run", h.Run)
 	prompts.GET("/:id/runs", h.List)
+
+	rg.GET("/api/runs", h.ListAll)
 }
 
 func (h *PromptRunHandler) Run(c *gin.Context) {
@@ -58,10 +60,37 @@ func (h *PromptRunHandler) List(c *gin.Context) {
 	actor := ctxutil.ActorFromCtx(c.Request.Context())
 	page := queryInt(c, "page", 1)
 	pageSize := queryInt(c, "pageSize", 20)
+	status := c.Query("status")
+	model := c.Query("model")
+	startDate := c.Query("startDate")
+	endDate := c.Query("endDate")
 
-	runs, total, err := h.runSvc.ListRuns(c.Request.Context(), actor, promptID, page, pageSize)
+	runs, total, err := h.runSvc.ListRuns(c.Request.Context(), actor, promptID, page, pageSize, status, model, startDate, endDate)
 	if err != nil {
 		writePromptError(c, err)
+		return
+	}
+
+	result.OK(c, gin.H{
+		"items":    runs,
+		"total":    total,
+		"page":     page,
+		"pageSize": pageSize,
+	})
+}
+
+func (h *PromptRunHandler) ListAll(c *gin.Context) {
+	actor := ctxutil.ActorFromCtx(c.Request.Context())
+	page := queryInt(c, "page", 1)
+	pageSize := queryInt(c, "pageSize", 20)
+	status := c.Query("status")
+	model := c.Query("model")
+	startDate := c.Query("startDate")
+	endDate := c.Query("endDate")
+
+	runs, total, err := h.runSvc.ListAllRuns(c.Request.Context(), actor, page, pageSize, status, model, startDate, endDate)
+	if err != nil {
+		result.InternalError(c, err.Error())
 		return
 	}
 
