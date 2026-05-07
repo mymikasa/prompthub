@@ -8,10 +8,12 @@ import (
 	"github.com/mymikasa/prompthub/internal/repo/dao/model"
 )
 
+type PromptFilter = dao.PromptFilter
+
 type PromptRepo interface {
 	Create(ctx context.Context, p *domain.Prompt) error
 	FindByID(ctx context.Context, id int64) (*domain.Prompt, error)
-	FindByWorkspace(ctx context.Context, workspaceID int64, page, pageSize int) ([]*domain.Prompt, int64, error)
+	FindByWorkspace(ctx context.Context, workspaceID int64, page, pageSize int, filter PromptFilter) ([]*domain.Prompt, int64, error)
 	Update(ctx context.Context, p *domain.Prompt) error
 }
 
@@ -42,8 +44,8 @@ func (r *promptRepo) FindByID(ctx context.Context, id int64) (*domain.Prompt, er
 	return toDomainPrompt(m), nil
 }
 
-func (r *promptRepo) FindByWorkspace(ctx context.Context, workspaceID int64, page, pageSize int) ([]*domain.Prompt, int64, error) {
-	items, total, err := r.dao.FindByWorkspace(ctx, workspaceID, page, pageSize)
+func (r *promptRepo) FindByWorkspace(ctx context.Context, workspaceID int64, page, pageSize int, filter PromptFilter) ([]*domain.Prompt, int64, error) {
+	items, total, err := r.dao.FindByWorkspace(ctx, workspaceID, page, pageSize, filter)
 	if err != nil {
 		return nil, 0, err
 	}

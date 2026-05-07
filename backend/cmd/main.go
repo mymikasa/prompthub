@@ -41,20 +41,28 @@ func main() {
 	userDAO := dao.NewUserDAO(db)
 	workspaceDAO := dao.NewWorkspaceDAO(db)
 	promptDAO := dao.NewPromptDAO(db)
+	tagDAO := dao.NewTagDAO(db)
+	variableDAO := dao.NewVariableDAO(db)
 
 	userRepo := repo.NewUserRepo(userDAO)
 	workspaceRepo := repo.NewWorkspaceRepo(workspaceDAO)
 	promptRepo := repo.NewPromptRepo(promptDAO)
+	tagRepo := repo.NewTagRepo(tagDAO)
+	variableRepo := repo.NewVariableRepo(variableDAO)
 
 	authService := service.NewAuthService(userRepo, workspaceRepo)
-	promptService := service.NewPromptService(promptRepo)
+	promptService := service.NewPromptService(promptRepo, tagRepo, variableRepo)
+	tagService := service.NewTagService(tagRepo)
+	variableService := service.NewVariableService(variableRepo)
 
 	healthHandler := handler.NewHealthHandler(db)
 	authHandler := handler.NewAuthHandler(authService, cfg.SessionSecret, cfg.IsDev())
 	promptHandler := handler.NewPromptHandler(promptService)
+	tagHandler := handler.NewTagHandler(tagService)
+	variableHandler := handler.NewVariableHandler(variableService, promptService)
 
 	engine := gin.New()
-	router.Setup(engine, healthHandler, authHandler, promptHandler, cfg.SessionSecret, userRepo, workspaceRepo)
+	router.Setup(engine, healthHandler, authHandler, promptHandler, tagHandler, variableHandler, cfg.SessionSecret, userRepo, workspaceRepo)
 
 	slog.Info("server starting", slog.String("addr", cfg.HTTPAddr))
 	if err := engine.Run(cfg.HTTPAddr); err != nil {

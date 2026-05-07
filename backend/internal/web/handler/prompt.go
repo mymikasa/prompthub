@@ -27,6 +27,7 @@ func (h *PromptHandler) Register(rg *gin.RouterGroup) {
 	prompts.PATCH("/:id", h.Update)
 	prompts.POST("/:id/archive", h.Archive)
 	prompts.POST("/:id/restore", h.Restore)
+	prompts.POST("/:id/render", h.Render)
 }
 
 func (h *PromptHandler) Create(c *gin.Context) {
@@ -51,7 +52,19 @@ func (h *PromptHandler) List(c *gin.Context) {
 	page := queryInt(c, "page", 1)
 	pageSize := queryInt(c, "pageSize", 20)
 
-	list, err := h.promptSvc.ListPrompts(c.Request.Context(), actor, page, pageSize)
+	filter := service.PromptFilter{
+		Keyword:  c.Query("keyword"),
+		Provider: c.Query("provider"),
+		Model:    c.Query("model"),
+	}
+	if statuses := c.QueryArray("status"); len(statuses) > 0 {
+		filter.Statuses = statuses
+	}
+	if tags := c.QueryArray("tags"); len(tags) > 0 {
+		filter.Tags = tags
+	}
+
+	list, err := h.promptSvc.ListPrompts(c.Request.Context(), actor, page, pageSize, filter)
 	if err != nil {
 		result.InternalError(c, err.Error())
 		return
@@ -141,6 +154,29 @@ func (h *PromptHandler) Restore(c *gin.Context) {
 	result.OK(c, nil)
 }
 
+func (h *PromptHandler) Render(c *gin.Context) {
+	id, err := parseID(c)
+	if err != nil {
+		result.BadRequest(c, "invalid id")
+		return
+	}
+
+	var req service.RenderReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		result.BadRequest(c, err.Error())
+		return
+	}
+
+	actor := ctxutil.ActorFromCtx(c.Request.Context())
+	rendered, err := h.promptSvc.RenderPrompt(c.Request.Context(), actor, id, &req)
+	if err != nil {
+		writePromptError(c, err)
+		return
+	}
+
+	result.OK(c, rendered)
+}
+
 func parseID(c *gin.Context) (int64, error) {
 	return strconv.ParseInt(c.Param("id"), 10, 64)
 }
@@ -164,6 +200,10 @@ func writePromptError(c *gin.Context, err error) {
 	}
 	if errors.Is(err, service.ErrNoPermission) {
 		result.Forbidden(c, err.Error())
+		return
+	}
+	if errors.Is(err, service.ErrMissingRequired) {
+		result.BadRequest(c, err.Error())
 		return
 	}
 	result.InternalError(c, err.Error())

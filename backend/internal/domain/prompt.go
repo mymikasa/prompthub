@@ -18,6 +18,7 @@ type Prompt struct {
 	DefaultTemperature *float64  `json:"defaultTemperature"`
 	DefaultMaxTokens   *int      `json:"defaultMaxTokens"`
 	UsageNotes         string    `json:"usageNotes"`
+	Tags               []string  `json:"tags"`
 	CreatedAt          time.Time `json:"createdAt"`
 	UpdatedAt          time.Time `json:"updatedAt"`
 }
