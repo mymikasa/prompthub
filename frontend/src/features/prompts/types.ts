@@ -68,19 +68,34 @@ export type TestCase = {
 };
 
 export type RunRecord = {
-  id: string;
-  promptVersionId: string;
-  testCaseId: string | null;
+  id: number;
+  promptId: number;
+  promptVersionId: number;
+  testCaseId: number | null;
   provider: string;
   model: string;
   inputVariables: Record<string, string>;
-  renderedPrompt: string;
-  output: string;
-  latencyMs: number;
+  renderedPromptSnapshot: any;
+  outputText: string;
+  latency: number;
   tokenUsage: { promptTokens: number; completionTokens: number; totalTokens: number } | null;
-  error: string | null;
-  createdBy: string;
+  errorMessage: string;
+  createdBy: number;
   createdAt: string;
+};
+
+export type RunPromptRequest = {
+  variables?: Record<string, string>;
+  testCaseId?: number | null;
+  providerId?: number | null;
+  model?: string;
+};
+
+export type RunListResponse = {
+  items: RunRecord[];
+  total: number;
+  page: number;
+  pageSize: number;
 };
 
 export type VersionSnapshot = {

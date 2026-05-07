@@ -46,6 +46,7 @@ func main() {
 	versionDAO := dao.NewVersionDAO(db)
 	testCaseDAO := dao.NewTestCaseDAO(db)
 	providerConfigDAO := dao.NewProviderConfigDAO(db)
+	promptRunDAO := dao.NewPromptRunDAO(db)
 
 	userRepo := repo.NewUserRepo(userDAO)
 	workspaceRepo := repo.NewWorkspaceRepo(workspaceDAO)
@@ -55,9 +56,10 @@ func main() {
 	versionRepo := repo.NewVersionRepo(versionDAO)
 	testCaseRepo := repo.NewTestCaseRepo(testCaseDAO)
 	providerConfigRepo := repo.NewProviderConfigRepo(providerConfigDAO)
+	promptRunRepo := repo.NewPromptRunRepo(promptRunDAO)
 
 	authService := service.NewAuthService(userRepo, workspaceRepo)
-	promptService := service.NewPromptService(promptRepo, tagRepo, variableRepo, versionRepo)
+	promptService := service.NewPromptService(promptRepo, tagRepo, variableRepo, versionRepo, providerConfigRepo)
 	tagService := service.NewTagService(tagRepo)
 	variableService := service.NewVariableService(variableRepo)
 	versionService := service.NewVersionService(versionRepo, promptRepo, tagRepo, variableRepo)
@@ -71,6 +73,7 @@ func main() {
 		slog.Error("init provider config service", slog.String("error", err.Error()))
 		os.Exit(1)
 	}
+	promptRunService := service.NewPromptRunService(promptRunRepo, promptRepo, testCaseRepo, variableRepo, providerConfigService, promptService)
 
 	healthHandler := handler.NewHealthHandler(db)
 	authHandler := handler.NewAuthHandler(authService, cfg.SessionSecret, cfg.IsDev())
@@ -80,9 +83,10 @@ func main() {
 	versionHandler := handler.NewVersionHandler(versionService)
 	testCaseHandler := handler.NewTestCaseHandler(testCaseService)
 	providerConfigHandler := handler.NewProviderConfigHandler(providerConfigService)
+	promptRunHandler := handler.NewPromptRunHandler(promptRunService)
 
 	engine := gin.New()
-	router.Setup(engine, healthHandler, authHandler, promptHandler, tagHandler, variableHandler, versionHandler, testCaseHandler, providerConfigHandler, cfg.SessionSecret, userRepo, workspaceRepo)
+	router.Setup(engine, healthHandler, authHandler, promptHandler, tagHandler, variableHandler, versionHandler, testCaseHandler, providerConfigHandler, promptRunHandler, cfg.SessionSecret, userRepo, workspaceRepo)
 
 	slog.Info("server starting", slog.String("addr", cfg.HTTPAddr))
 	if err := engine.Run(cfg.HTTPAddr); err != nil {

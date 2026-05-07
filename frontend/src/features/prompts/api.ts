@@ -6,6 +6,8 @@ import type {
   PromptVariable,
   TestCase,
   RunRecord,
+  RunPromptRequest,
+  RunListResponse,
   PromptVersion,
 } from './types';
 
@@ -90,8 +92,15 @@ export function deleteTestCase(promptId: Id, testCaseId: Id) {
   );
 }
 
-export function getRuns(promptId: Id) {
-  return apiClient<RunRecord[]>(`/prompts/${promptId}/runs`);
+export function getRuns(promptId: Id, page = 1, pageSize = 20) {
+  return apiClient<RunListResponse>(`/prompts/${promptId}/runs?page=${page}&pageSize=${pageSize}`);
+}
+
+export function runPrompt(promptId: Id, data: RunPromptRequest) {
+  return apiClient<{ run: RunRecord }>(`/prompts/${promptId}/run`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
 }
 
 export function getVersions(promptId: Id) {
