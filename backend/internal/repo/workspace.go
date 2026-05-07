@@ -24,7 +24,14 @@ func NewWorkspaceRepo(d dao.WorkspaceDAO) WorkspaceRepo {
 }
 
 func (r *workspaceRepo) Create(ctx context.Context, ws *domain.Workspace) error {
-	return r.dao.Create(ctx, toModelWorkspace(ws))
+	m := toModelWorkspace(ws)
+	if err := r.dao.Create(ctx, m); err != nil {
+		return err
+	}
+	ws.ID = m.ID
+	ws.CreatedAt = m.CreatedAt
+	ws.UpdatedAt = m.UpdatedAt
+	return nil
 }
 
 func (r *workspaceRepo) AddMember(ctx context.Context, member *domain.WorkspaceMember) error {

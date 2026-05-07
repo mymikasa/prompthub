@@ -44,6 +44,8 @@ func main() {
 	tagDAO := dao.NewTagDAO(db)
 	variableDAO := dao.NewVariableDAO(db)
 	versionDAO := dao.NewVersionDAO(db)
+	testCaseDAO := dao.NewTestCaseDAO(db)
+	providerConfigDAO := dao.NewProviderConfigDAO(db)
 
 	userRepo := repo.NewUserRepo(userDAO)
 	workspaceRepo := repo.NewWorkspaceRepo(workspaceDAO)
@@ -51,12 +53,24 @@ func main() {
 	tagRepo := repo.NewTagRepo(tagDAO)
 	variableRepo := repo.NewVariableRepo(variableDAO)
 	versionRepo := repo.NewVersionRepo(versionDAO)
+	testCaseRepo := repo.NewTestCaseRepo(testCaseDAO)
+	providerConfigRepo := repo.NewProviderConfigRepo(providerConfigDAO)
 
 	authService := service.NewAuthService(userRepo, workspaceRepo)
 	promptService := service.NewPromptService(promptRepo, tagRepo, variableRepo, versionRepo)
 	tagService := service.NewTagService(tagRepo)
 	variableService := service.NewVariableService(variableRepo)
 	versionService := service.NewVersionService(versionRepo, promptRepo, tagRepo, variableRepo)
+	testCaseService := service.NewTestCaseService(testCaseRepo, promptRepo, variableRepo)
+	encryptionKey := cfg.SecretEncryptionKey
+	if cfg.IsDev() {
+		encryptionKey = "0000000000000000000000000000000000000000000000000000000000000000"
+	}
+	providerConfigService, err := service.NewProviderConfigService(providerConfigRepo, encryptionKey)
+	if err != nil {
+		slog.Error("init provider config service", slog.String("error", err.Error()))
+		os.Exit(1)
+	}
 
 	healthHandler := handler.NewHealthHandler(db)
 	authHandler := handler.NewAuthHandler(authService, cfg.SessionSecret, cfg.IsDev())
@@ -64,9 +78,11 @@ func main() {
 	tagHandler := handler.NewTagHandler(tagService)
 	variableHandler := handler.NewVariableHandler(variableService, promptService)
 	versionHandler := handler.NewVersionHandler(versionService)
+	testCaseHandler := handler.NewTestCaseHandler(testCaseService)
+	providerConfigHandler := handler.NewProviderConfigHandler(providerConfigService)
 
 	engine := gin.New()
-	router.Setup(engine, healthHandler, authHandler, promptHandler, tagHandler, variableHandler, versionHandler, cfg.SessionSecret, userRepo, workspaceRepo)
+	router.Setup(engine, healthHandler, authHandler, promptHandler, tagHandler, variableHandler, versionHandler, testCaseHandler, providerConfigHandler, cfg.SessionSecret, userRepo, workspaceRepo)
 
 	slog.Info("server starting", slog.String("addr", cfg.HTTPAddr))
 	if err := engine.Run(cfg.HTTPAddr); err != nil {
