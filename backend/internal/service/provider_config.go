@@ -28,7 +28,7 @@ func NewProviderConfigService(repo repo.ProviderConfigRepo, encryptionKeyHex str
 
 type SaveProviderConfigReq struct {
 	Name         string `json:"name" binding:"required,min=1,max=100"`
-	ProviderType string `json:"providerType" binding:"required,oneof=openai_compatible"`
+	ProviderType string `json:"providerType" binding:"required"`
 	BaseURL      string `json:"baseUrl" binding:"required"`
 	APIKey       string `json:"apiKey"`
 	DefaultModel string `json:"defaultModel"`

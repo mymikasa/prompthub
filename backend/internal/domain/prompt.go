@@ -15,6 +15,7 @@ type Prompt struct {
 	Status             string    `json:"status"`
 	TargetProvider     string    `json:"targetProvider"`
 	TargetModel        string    `json:"targetModel"`
+	ProviderConfigID   *int64    `json:"providerConfigId"`
 	DefaultTemperature *float64  `json:"defaultTemperature"`
 	DefaultMaxTokens   *int      `json:"defaultMaxTokens"`
 	UsageNotes         string    `json:"usageNotes"`

@@ -14,6 +14,7 @@ export type Prompt = {
   messageFormat: PromptMessageFormat;
   visibility: PromptVisibility;
   status: PromptStatus;
+  providerConfigId: number | null;
   targetProvider: string;
   targetModel: string;
   defaultTemperature: number | null;

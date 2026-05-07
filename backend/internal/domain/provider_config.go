@@ -6,6 +6,7 @@ type ProviderConfig struct {
 	ID              int64     `json:"id"`
 	WorkspaceID     int64     `json:"workspaceId"`
 	ProviderType    string    `json:"providerType"`
+	Name            string    `json:"name"`
 	BaseURL         string    `json:"baseUrl"`
 	EncryptedAPIKey string    `json:"-"`
 	DefaultModel    string    `json:"defaultModel"`

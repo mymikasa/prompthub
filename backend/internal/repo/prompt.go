@@ -2,6 +2,7 @@ package repo
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/mymikasa/prompthub/internal/domain"
 	"github.com/mymikasa/prompthub/internal/repo/dao"
@@ -74,6 +75,7 @@ func toModelPrompt(p *domain.Prompt) *model.Prompt {
 		Status:             p.Status,
 		TargetProvider:     p.TargetProvider,
 		TargetModel:        p.TargetModel,
+		ProviderConfigID:   toNullInt64(p.ProviderConfigID),
 		DefaultTemperature: p.DefaultTemperature,
 		DefaultMaxTokens:   p.DefaultMaxTokens,
 		UsageNotes:         p.UsageNotes,
@@ -97,6 +99,7 @@ func toDomainPrompt(m *model.Prompt) *domain.Prompt {
 		Status:             m.Status,
 		TargetProvider:     m.TargetProvider,
 		TargetModel:        m.TargetModel,
+		ProviderConfigID:   fromNullInt64(m.ProviderConfigID),
 		DefaultTemperature: m.DefaultTemperature,
 		DefaultMaxTokens:   m.DefaultMaxTokens,
 		UsageNotes:         m.UsageNotes,
@@ -104,4 +107,18 @@ func toDomainPrompt(m *model.Prompt) *domain.Prompt {
 		CreatedAt:          m.CreatedAt,
 		UpdatedAt:          m.UpdatedAt,
 	}
+}
+
+func toNullInt64(v *int64) sql.NullInt64 {
+	if v == nil {
+		return sql.NullInt64{}
+	}
+	return sql.NullInt64{Int64: *v, Valid: true}
+}
+
+func fromNullInt64(v sql.NullInt64) *int64 {
+	if !v.Valid {
+		return nil
+	}
+	return &v.Int64
 }

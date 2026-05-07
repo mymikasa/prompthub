@@ -20,6 +20,7 @@ type Prompt struct {
 	Status              string         `gorm:"type:varchar(20);index;not null"`
 	TargetProvider      string         `gorm:"type:varchar(50)"`
 	TargetModel         string         `gorm:"type:varchar(100)"`
+	ProviderConfigID    sql.NullInt64  `gorm:"index"`
 	DefaultTemperature  *float64
 	DefaultMaxTokens    *int
 	UsageNotes          string         `gorm:"type:text"`

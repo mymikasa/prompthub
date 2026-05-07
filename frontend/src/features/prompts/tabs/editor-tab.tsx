@@ -5,7 +5,9 @@ import { z } from 'zod/v4';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Save, Loader2, Plus, X } from 'lucide-react';
 import { updatePrompt } from '../api';
+import { listProviders } from '../../settings/api';
 import type { Prompt } from '../types';
+import type { ProviderConfig } from '../../settings/types';
 
 const editorSchema = z.object({
   title: z.string().min(1, '标题不能为空'),
@@ -14,7 +16,7 @@ const editorSchema = z.object({
   body: z.string().optional(),
   visibility: z.enum(['private', 'workspace']),
   status: z.enum(['draft', 'active', 'deprecated']),
-  targetProvider: z.string().optional(),
+  providerConfigId: z.string().optional(),
   targetModel: z.string().optional(),
   defaultTemperature: z.number().nullable().optional(),
   defaultMaxTokens: z.number().nullable().optional(),
@@ -35,11 +37,13 @@ export function EditorTab({ prompt }: { prompt: Prompt }) {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [tags, setTags] = useState<string[]>(prompt.tags || []);
   const [tagInput, setTagInput] = useState('');
+  const [providers, setProviders] = useState<ProviderConfig[]>([]);
 
   const {
     register,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors },
   } = useForm<EditorForm>({
     resolver: zodResolver(editorSchema),
@@ -50,7 +54,7 @@ export function EditorTab({ prompt }: { prompt: Prompt }) {
       body: prompt.body || '',
       visibility: prompt.visibility,
       status: prompt.status === 'archived' ? 'draft' : prompt.status,
-      targetProvider: prompt.targetProvider || '',
+      providerConfigId: prompt.providerConfigId ? String(prompt.providerConfigId) : '',
       targetModel: prompt.targetModel || '',
       defaultTemperature: prompt.defaultTemperature,
       defaultMaxTokens: prompt.defaultMaxTokens,
@@ -61,12 +65,33 @@ export function EditorTab({ prompt }: { prompt: Prompt }) {
   const body = watch('body') || '';
   const inferredVars = extractVariables(body);
 
+  useEffect(() => {
+    listProviders().then((list) => {
+      setProviders(list);
+      if (prompt.providerConfigId) {
+        setValue('providerConfigId', String(prompt.providerConfigId));
+      } else if (list.length === 1) {
+        setValue('providerConfigId', String(list[0].id));
+      }
+    }).catch(() => {});
+  }, [prompt.providerConfigId]);
+
+  const selectedProviderId = watch('providerConfigId');
+  const selectedProvider = providers.find((p) => String(p.id) === selectedProviderId);
+
   const onSubmit = async (data: EditorForm) => {
     setSaving(true);
     setSaveError('');
     setSaveSuccess(false);
     try {
-      await updatePrompt(prompt.id, { ...data, tags });
+      const payload: Record<string, unknown> = { ...data, tags };
+      if (data.providerConfigId) {
+        payload.providerConfigId = Number(data.providerConfigId);
+      } else {
+        delete payload.providerConfigId;
+      }
+      delete (payload as Record<string, unknown>).targetProvider;
+      await updatePrompt(prompt.id, payload);
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 2000);
       queryClient.invalidateQueries({ queryKey: ['prompt', prompt.id] });
@@ -182,8 +207,17 @@ export function EditorTab({ prompt }: { prompt: Prompt }) {
             <option value="deprecated">已废弃</option>
           </SelectField>
 
-          <InputField label="模型提供方" {...register('targetProvider')} placeholder="openai" />
-          <InputField label="模型名称" {...register('targetModel')} placeholder="gpt-4o" />
+          <SelectField label="模型提供方" {...register('providerConfigId')}>
+            <option value="">未选择</option>
+            {providers.map((p) => (
+              <option key={p.id} value={p.id}>{p.name} ({p.providerType})</option>
+            ))}
+          </SelectField>
+          <InputField
+            label="模型名称"
+            {...register('targetModel')}
+            placeholder={selectedProvider?.defaultModel || 'gpt-4o'}
+          />
           <InputField label="Temperature" {...register('defaultTemperature')} placeholder="0.7" type="number" step="0.1" />
           <InputField label="Max Tokens" {...register('defaultMaxTokens')} placeholder="2048" type="number" />
 

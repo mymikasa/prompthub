@@ -9,6 +9,7 @@ import {
   Sun,
   Moon,
 } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/features/auth/auth-context';
 import { useTheme } from '@/components/ui/theme-provider';
 
@@ -28,6 +29,7 @@ export function AppLayout() {
   const { theme, toggle } = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const isActive = (path: string, exact?: boolean) => {
     if (exact) return location.pathname === path;
@@ -36,6 +38,7 @@ export function AppLayout() {
 
   const handleLogout = async () => {
     await logout();
+    queryClient.clear();
     navigate('/login', { replace: true });
   };
 
