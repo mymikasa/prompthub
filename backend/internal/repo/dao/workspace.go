@@ -7,23 +7,30 @@ import (
 	"gorm.io/gorm"
 )
 
-type WorkspaceDAO struct {
+type WorkspaceDAO interface {
+	Create(ctx context.Context, m *model.Workspace) error
+	AddMember(ctx context.Context, m *model.WorkspaceMember) error
+	FindMemberByUserID(ctx context.Context, userID int64) (*model.WorkspaceMember, error)
+	FindByID(ctx context.Context, id int64) (*model.Workspace, error)
+}
+
+type workspaceDAO struct {
 	db *gorm.DB
 }
 
-func NewWorkspaceDAO(db *gorm.DB) *WorkspaceDAO {
-	return &WorkspaceDAO{db: db}
+func NewWorkspaceDAO(db *gorm.DB) WorkspaceDAO {
+	return &workspaceDAO{db: db}
 }
 
-func (d *WorkspaceDAO) Create(ctx context.Context, m *model.Workspace) error {
+func (d *workspaceDAO) Create(ctx context.Context, m *model.Workspace) error {
 	return d.db.WithContext(ctx).Create(m).Error
 }
 
-func (d *WorkspaceDAO) AddMember(ctx context.Context, m *model.WorkspaceMember) error {
+func (d *workspaceDAO) AddMember(ctx context.Context, m *model.WorkspaceMember) error {
 	return d.db.WithContext(ctx).Create(m).Error
 }
 
-func (d *WorkspaceDAO) FindMemberByUserID(ctx context.Context, userID int64) (*model.WorkspaceMember, error) {
+func (d *workspaceDAO) FindMemberByUserID(ctx context.Context, userID int64) (*model.WorkspaceMember, error) {
 	var m model.WorkspaceMember
 	if err := d.db.WithContext(ctx).Where("user_id = ? AND role = ?", userID, "owner").First(&m).Error; err != nil {
 		return nil, err
@@ -31,7 +38,7 @@ func (d *WorkspaceDAO) FindMemberByUserID(ctx context.Context, userID int64) (*m
 	return &m, nil
 }
 
-func (d *WorkspaceDAO) FindByID(ctx context.Context, id int64) (*model.Workspace, error) {
+func (d *workspaceDAO) FindByID(ctx context.Context, id int64) (*model.Workspace, error) {
 	var m model.Workspace
 	if err := d.db.WithContext(ctx).First(&m, id).Error; err != nil {
 		return nil, err

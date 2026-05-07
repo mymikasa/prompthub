@@ -8,19 +8,25 @@ import (
 	"github.com/mymikasa/prompthub/internal/repo/dao/model"
 )
 
-type WorkspaceRepo struct {
-	dao *dao.WorkspaceDAO
+type WorkspaceRepo interface {
+	Create(ctx context.Context, ws *domain.Workspace) error
+	AddMember(ctx context.Context, member *domain.WorkspaceMember) error
+	FindByUserID(ctx context.Context, userID int64) (*domain.Workspace, error)
 }
 
-func NewWorkspaceRepo(d *dao.WorkspaceDAO) *WorkspaceRepo {
-	return &WorkspaceRepo{dao: d}
+type workspaceRepo struct {
+	dao dao.WorkspaceDAO
 }
 
-func (r *WorkspaceRepo) Create(ctx context.Context, ws *domain.Workspace) error {
+func NewWorkspaceRepo(d dao.WorkspaceDAO) WorkspaceRepo {
+	return &workspaceRepo{dao: d}
+}
+
+func (r *workspaceRepo) Create(ctx context.Context, ws *domain.Workspace) error {
 	return r.dao.Create(ctx, toModelWorkspace(ws))
 }
 
-func (r *WorkspaceRepo) AddMember(ctx context.Context, member *domain.WorkspaceMember) error {
+func (r *workspaceRepo) AddMember(ctx context.Context, member *domain.WorkspaceMember) error {
 	return r.dao.AddMember(ctx, &model.WorkspaceMember{
 		WorkspaceID: member.WorkspaceID,
 		UserID:      member.UserID,
@@ -28,7 +34,7 @@ func (r *WorkspaceRepo) AddMember(ctx context.Context, member *domain.WorkspaceM
 	})
 }
 
-func (r *WorkspaceRepo) FindByUserID(ctx context.Context, userID int64) (*domain.Workspace, error) {
+func (r *workspaceRepo) FindByUserID(ctx context.Context, userID int64) (*domain.Workspace, error) {
 	member, err := r.dao.FindMemberByUserID(ctx, userID)
 	if err != nil {
 		return nil, err

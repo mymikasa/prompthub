@@ -8,15 +8,21 @@ import (
 	"github.com/mymikasa/prompthub/internal/repo/dao/model"
 )
 
-type UserRepo struct {
-	dao *dao.UserDAO
+type UserRepo interface {
+	FindByEmail(ctx context.Context, email string) (*domain.User, error)
+	Create(ctx context.Context, user *domain.User) error
+	FindByID(ctx context.Context, id int64) (*domain.User, error)
 }
 
-func NewUserRepo(d *dao.UserDAO) *UserRepo {
-	return &UserRepo{dao: d}
+type userRepo struct {
+	dao dao.UserDAO
 }
 
-func (r *UserRepo) FindByEmail(ctx context.Context, email string) (*domain.User, error) {
+func NewUserRepo(d dao.UserDAO) UserRepo {
+	return &userRepo{dao: d}
+}
+
+func (r *userRepo) FindByEmail(ctx context.Context, email string) (*domain.User, error) {
 	m, err := r.dao.FindByEmail(ctx, email)
 	if err != nil {
 		return nil, err
@@ -24,11 +30,11 @@ func (r *UserRepo) FindByEmail(ctx context.Context, email string) (*domain.User,
 	return toDomainUser(m), nil
 }
 
-func (r *UserRepo) Create(ctx context.Context, user *domain.User) error {
+func (r *userRepo) Create(ctx context.Context, user *domain.User) error {
 	return r.dao.Create(ctx, toModelUser(user))
 }
 
-func (r *UserRepo) FindByID(ctx context.Context, id int64) (*domain.User, error) {
+func (r *userRepo) FindByID(ctx context.Context, id int64) (*domain.User, error) {
 	m, err := r.dao.FindByID(ctx, id)
 	if err != nil {
 		return nil, err

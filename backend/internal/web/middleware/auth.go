@@ -9,7 +9,7 @@ import (
 	"github.com/mymikasa/prompthub/pkg/session"
 )
 
-func Auth(sessionSecret string, userRepo *repo.UserRepo) gin.HandlerFunc {
+func Auth(sessionSecret string, userRepo repo.UserRepo) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		sess, err := session.GetFromCookie(c, sessionSecret)
 		if err != nil {

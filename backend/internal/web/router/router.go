@@ -7,7 +7,7 @@ import (
 	"github.com/mymikasa/prompthub/internal/web/middleware"
 )
 
-func Setup(engine *gin.Engine, health *handler.HealthHandler, auth *handler.AuthHandler, sessionSecret string, userRepo *repo.UserRepo) {
+func Setup(engine *gin.Engine, health *handler.HealthHandler, auth *handler.AuthHandler, sessionSecret string, userRepo repo.UserRepo) {
 	engine.Use(middleware.Recovery())
 	engine.Use(middleware.RequestLog())
 	engine.Use(middleware.CORS())
