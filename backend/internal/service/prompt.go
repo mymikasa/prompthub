@@ -16,18 +16,20 @@ import (
 )
 
 var (
-	ErrPromptNotFound = errors.New("prompt not found")
-	ErrNoPermission   = errors.New("no permission")
+	ErrPromptNotFound  = errors.New("prompt not found")
+	ErrNoPermission    = errors.New("no permission")
+	ErrMissingRequired = errors.New("missing required variable")
 )
 
 type PromptService struct {
 	promptRepo   repo.PromptRepo
 	tagRepo      repo.TagRepo
 	variableRepo repo.VariableRepo
+	versionRepo  repo.VersionRepo
 }
 
-func NewPromptService(promptRepo repo.PromptRepo, tagRepo repo.TagRepo, variableRepo repo.VariableRepo) *PromptService {
-	return &PromptService{promptRepo: promptRepo, tagRepo: tagRepo, variableRepo: variableRepo}
+func NewPromptService(promptRepo repo.PromptRepo, tagRepo repo.TagRepo, variableRepo repo.VariableRepo, versionRepo repo.VersionRepo) *PromptService {
+	return &PromptService{promptRepo: promptRepo, tagRepo: tagRepo, variableRepo: variableRepo, versionRepo: versionRepo}
 }
 
 type PromptFilter struct {
@@ -102,6 +104,10 @@ func (s *PromptService) CreatePrompt(ctx context.Context, actor *domain.Actor, r
 	}
 
 	if err := s.syncVariables(ctx, p.ID, req.Body); err != nil {
+		return nil, err
+	}
+
+	if err := s.createInitialVersion(ctx, p, req.Tags); err != nil {
 		return nil, err
 	}
 
@@ -235,6 +241,10 @@ func (s *PromptService) UpdatePrompt(ctx context.Context, actor *domain.Actor, i
 		}
 	}
 
+	if err := s.createUpdateVersion(ctx, p); err != nil {
+		return nil, err
+	}
+
 	return p, nil
 }
 
@@ -292,7 +302,6 @@ func (s *PromptService) syncVariables(ctx context.Context, promptID int64, body 
 		existingMap[v.Name] = v
 	}
 
-	// collect new variable names not in existing
 	var newVars []*domain.PromptVariable
 	for _, name := range extracted {
 		if _, ok := existingMap[name]; !ok {
@@ -309,7 +318,6 @@ func (s *PromptService) syncVariables(ctx context.Context, promptID int64, body 
 		}
 	}
 
-	// delete variables no longer in body
 	if err := s.variableRepo.DeleteNotIn(ctx, promptID, extracted); err != nil {
 		return err
 	}
@@ -330,9 +338,9 @@ func (s *PromptService) loadTagNames(ctx context.Context, promptID int64) ([]str
 }
 
 type RenderResult struct {
-	Content   string         `json:"content"`
-	Messages  []ChatMessage  `json:"messages"`
-	Variables []string       `json:"variables"`
+	Content   string        `json:"content"`
+	Messages  []ChatMessage `json:"messages"`
+	Variables []string      `json:"variables"`
 }
 
 type ChatMessage struct {
@@ -344,15 +352,12 @@ type RenderReq struct {
 	Variables map[string]string `json:"variables"`
 }
 
-var ErrMissingRequired = errors.New("missing required variable")
-
 func (s *PromptService) RenderPrompt(ctx context.Context, actor *domain.Actor, promptID int64, req *RenderReq) (*RenderResult, error) {
 	p, err := s.GetPrompt(ctx, actor, promptID)
 	if err != nil {
 		return nil, err
 	}
 
-	// validate required variables
 	allVars, err := s.variableRepo.FindByPromptID(ctx, promptID)
 	if err != nil {
 		return nil, err
@@ -372,7 +377,6 @@ func (s *PromptService) RenderPrompt(ctx context.Context, actor *domain.Actor, p
 		return nil, fmt.Errorf("%w: %v", ErrMissingRequired, missing)
 	}
 
-	// merge defaults
 	resolved := make(map[string]string)
 	for _, v := range allVars {
 		if val, ok := req.Variables[v.Name]; ok && val != "" {
@@ -382,7 +386,6 @@ func (s *PromptService) RenderPrompt(ctx context.Context, actor *domain.Actor, p
 		}
 	}
 
-	// extract variable names for response
 	varNames := make([]string, len(allVars))
 	for i, v := range allVars {
 		varNames[i] = v.Name

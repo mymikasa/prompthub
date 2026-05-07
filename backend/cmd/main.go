@@ -43,26 +43,30 @@ func main() {
 	promptDAO := dao.NewPromptDAO(db)
 	tagDAO := dao.NewTagDAO(db)
 	variableDAO := dao.NewVariableDAO(db)
+	versionDAO := dao.NewVersionDAO(db)
 
 	userRepo := repo.NewUserRepo(userDAO)
 	workspaceRepo := repo.NewWorkspaceRepo(workspaceDAO)
 	promptRepo := repo.NewPromptRepo(promptDAO)
 	tagRepo := repo.NewTagRepo(tagDAO)
 	variableRepo := repo.NewVariableRepo(variableDAO)
+	versionRepo := repo.NewVersionRepo(versionDAO)
 
 	authService := service.NewAuthService(userRepo, workspaceRepo)
-	promptService := service.NewPromptService(promptRepo, tagRepo, variableRepo)
+	promptService := service.NewPromptService(promptRepo, tagRepo, variableRepo, versionRepo)
 	tagService := service.NewTagService(tagRepo)
 	variableService := service.NewVariableService(variableRepo)
+	versionService := service.NewVersionService(versionRepo, promptRepo, tagRepo, variableRepo)
 
 	healthHandler := handler.NewHealthHandler(db)
 	authHandler := handler.NewAuthHandler(authService, cfg.SessionSecret, cfg.IsDev())
 	promptHandler := handler.NewPromptHandler(promptService)
 	tagHandler := handler.NewTagHandler(tagService)
 	variableHandler := handler.NewVariableHandler(variableService, promptService)
+	versionHandler := handler.NewVersionHandler(versionService)
 
 	engine := gin.New()
-	router.Setup(engine, healthHandler, authHandler, promptHandler, tagHandler, variableHandler, cfg.SessionSecret, userRepo, workspaceRepo)
+	router.Setup(engine, healthHandler, authHandler, promptHandler, tagHandler, variableHandler, versionHandler, cfg.SessionSecret, userRepo, workspaceRepo)
 
 	slog.Info("server starting", slog.String("addr", cfg.HTTPAddr))
 	if err := engine.Run(cfg.HTTPAddr); err != nil {

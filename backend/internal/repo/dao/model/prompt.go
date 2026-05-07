@@ -23,6 +23,7 @@ type Prompt struct {
 	DefaultTemperature  *float64
 	DefaultMaxTokens    *int
 	UsageNotes          string         `gorm:"type:text"`
+	CurrentVersionID    int64          `gorm:"index"`
 	CreatedAt           time.Time      `gorm:"index"`
 	UpdatedAt           time.Time      `gorm:"index"`
 	DeletedAt           gorm.DeletedAt `gorm:"index"`

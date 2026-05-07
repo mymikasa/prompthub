@@ -77,6 +77,7 @@ func toModelPrompt(p *domain.Prompt) *model.Prompt {
 		DefaultTemperature: p.DefaultTemperature,
 		DefaultMaxTokens:   p.DefaultMaxTokens,
 		UsageNotes:         p.UsageNotes,
+		CurrentVersionID:   p.CurrentVersionID,
 		CreatedAt:          p.CreatedAt,
 		UpdatedAt:          p.UpdatedAt,
 	}
@@ -99,6 +100,7 @@ func toDomainPrompt(m *model.Prompt) *domain.Prompt {
 		DefaultTemperature: m.DefaultTemperature,
 		DefaultMaxTokens:   m.DefaultMaxTokens,
 		UsageNotes:         m.UsageNotes,
+		CurrentVersionID:   m.CurrentVersionID,
 		CreatedAt:          m.CreatedAt,
 		UpdatedAt:          m.UpdatedAt,
 	}
