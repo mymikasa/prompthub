@@ -27,6 +27,7 @@ func NewProviderConfigService(repo repo.ProviderConfigRepo, encryptionKeyHex str
 }
 
 type SaveProviderConfigReq struct {
+	Name         string `json:"name" binding:"required,min=1,max=100"`
 	ProviderType string `json:"providerType" binding:"required,oneof=openai_compatible"`
 	BaseURL      string `json:"baseUrl" binding:"required"`
 	APIKey       string `json:"apiKey"`
@@ -35,31 +36,55 @@ type SaveProviderConfigReq struct {
 
 type ProviderConfigResponse struct {
 	ID           int64  `json:"id"`
+	Name         string `json:"name"`
 	ProviderType string `json:"providerType"`
 	BaseURL      string `json:"baseUrl"`
 	HasAPIKey    bool   `json:"hasApiKey"`
 	DefaultModel string `json:"defaultModel"`
 }
 
-func (s *ProviderConfigService) Get(ctx context.Context, actor *domain.Actor) (*ProviderConfigResponse, error) {
-	pc, err := s.repo.FindByWorkspaceID(ctx, actor.WorkspaceID)
+func (s *ProviderConfigService) List(ctx context.Context, actor *domain.Actor) ([]ProviderConfigResponse, error) {
+	list, err := s.repo.ListByWorkspaceID(ctx, actor.WorkspaceID)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]ProviderConfigResponse, len(list))
+	for i, pc := range list {
+		result[i] = ProviderConfigResponse{
+			ID:           pc.ID,
+			Name:         pc.Name,
+			ProviderType: pc.ProviderType,
+			BaseURL:      pc.BaseURL,
+			HasAPIKey:    pc.EncryptedAPIKey != "",
+			DefaultModel: pc.DefaultModel,
+		}
+	}
+	return result, nil
+}
+
+func (s *ProviderConfigService) GetByID(ctx context.Context, actor *domain.Actor, id int64) (*ProviderConfigResponse, error) {
+	pc, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return &ProviderConfigResponse{}, nil
+			return nil, ErrProviderConfigNotFound
 		}
 		return nil, err
 	}
+	if pc.WorkspaceID != actor.WorkspaceID {
+		return nil, ErrProviderConfigNotFound
+	}
 	return &ProviderConfigResponse{
 		ID:           pc.ID,
+		Name:         pc.Name,
 		ProviderType: pc.ProviderType,
 		BaseURL:      pc.BaseURL,
-		HasAPIKey:    pc.HasAPIKey,
+		HasAPIKey:    pc.EncryptedAPIKey != "",
 		DefaultModel: pc.DefaultModel,
 	}, nil
 }
 
 func (s *ProviderConfigService) Save(ctx context.Context, actor *domain.Actor, req *SaveProviderConfigReq) (*ProviderConfigResponse, error) {
-	existing, err := s.repo.FindByWorkspaceID(ctx, actor.WorkspaceID)
+	existing, err := s.repo.FindByWorkspaceAndType(ctx, actor.WorkspaceID, req.ProviderType)
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
@@ -67,6 +92,7 @@ func (s *ProviderConfigService) Save(ctx context.Context, actor *domain.Actor, r
 	pc := &domain.ProviderConfig{
 		WorkspaceID:  actor.WorkspaceID,
 		ProviderType: req.ProviderType,
+		Name:         req.Name,
 		BaseURL:      req.BaseURL,
 		DefaultModel: req.DefaultModel,
 		CreatedBy:    actor.UserID,
@@ -88,12 +114,19 @@ func (s *ProviderConfigService) Save(ctx context.Context, actor *domain.Actor, r
 		pc.EncryptedAPIKey = existing.EncryptedAPIKey
 	}
 
-	if err := s.repo.Save(ctx, pc); err != nil {
-		return nil, err
+	if existing != nil {
+		if err := s.repo.Update(ctx, pc); err != nil {
+			return nil, err
+		}
+	} else {
+		if err := s.repo.Create(ctx, pc); err != nil {
+			return nil, err
+		}
 	}
 
 	return &ProviderConfigResponse{
 		ID:           pc.ID,
+		Name:         pc.Name,
 		ProviderType: pc.ProviderType,
 		BaseURL:      pc.BaseURL,
 		HasAPIKey:    pc.EncryptedAPIKey != "",
@@ -101,11 +134,51 @@ func (s *ProviderConfigService) Save(ctx context.Context, actor *domain.Actor, r
 	}, nil
 }
 
-func (s *ProviderConfigService) DecryptAPIKey(ctx context.Context, workspaceID int64) (string, error) {
-	pc, err := s.repo.FindByWorkspaceID(ctx, workspaceID)
+func (s *ProviderConfigService) Delete(ctx context.Context, actor *domain.Actor, id int64) error {
+	pc, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ErrProviderConfigNotFound
+		}
+		return err
+	}
+	if pc.WorkspaceID != actor.WorkspaceID {
+		return ErrProviderConfigNotFound
+	}
+	return s.repo.Delete(ctx, id)
+}
+
+func (s *ProviderConfigService) DecryptAPIKey(ctx context.Context, workspaceID int64, providerType string) (string, error) {
+	pc, err := s.repo.FindByWorkspaceAndType(ctx, workspaceID, providerType)
 	if err != nil {
 		return "", ErrProviderConfigNotFound
 	}
+	if pc.EncryptedAPIKey == "" {
+		return "", ErrProviderConfigNotFound
+	}
+	return crypto.Decrypt(pc.EncryptedAPIKey, s.encKey)
+}
+
+func (s *ProviderConfigService) GetProviderConfig(ctx context.Context, workspaceID int64, providerType string) (*domain.ProviderConfig, error) {
+	pc, err := s.repo.FindByWorkspaceAndType(ctx, workspaceID, providerType)
+	if err != nil {
+		return nil, ErrProviderConfigNotFound
+	}
+	return pc, nil
+}
+
+func (s *ProviderConfigService) GetProviderConfigByID(ctx context.Context, actor *domain.Actor, id int64) (*domain.ProviderConfig, error) {
+	pc, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		return nil, ErrProviderConfigNotFound
+	}
+	if pc.WorkspaceID != actor.WorkspaceID {
+		return nil, ErrProviderConfigNotFound
+	}
+	return pc, nil
+}
+
+func (s *ProviderConfigService) DecryptAPIKeyByConfig(ctx context.Context, pc *domain.ProviderConfig) (string, error) {
 	if pc.EncryptedAPIKey == "" {
 		return "", ErrProviderConfigNotFound
 	}

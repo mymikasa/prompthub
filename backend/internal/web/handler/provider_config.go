@@ -1,6 +1,9 @@
 package handler
 
 import (
+	"errors"
+	"strconv"
+
 	"github.com/gin-gonic/gin"
 	"github.com/mymikasa/prompthub/internal/service"
 	"github.com/mymikasa/prompthub/internal/web/result"
@@ -17,14 +20,35 @@ func NewProviderConfigHandler(svc *service.ProviderConfigService) *ProviderConfi
 
 func (h *ProviderConfigHandler) Register(rg *gin.RouterGroup) {
 	settings := rg.Group("/api/settings")
-	settings.GET("/provider", h.Get)
-	settings.PUT("/provider", h.Save)
+	settings.GET("/providers", h.List)
+	settings.POST("/providers", h.Save)
+	settings.GET("/providers/:id", h.GetByID)
+	settings.DELETE("/providers/:id", h.Delete)
 }
 
-func (h *ProviderConfigHandler) Get(c *gin.Context) {
+func (h *ProviderConfigHandler) List(c *gin.Context) {
 	actor := ctxutil.ActorFromCtx(c.Request.Context())
-	resp, err := h.svc.Get(c.Request.Context(), actor)
+	resp, err := h.svc.List(c.Request.Context(), actor)
 	if err != nil {
+		result.InternalError(c, err.Error())
+		return
+	}
+	result.OK(c, resp)
+}
+
+func (h *ProviderConfigHandler) GetByID(c *gin.Context) {
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		result.BadRequest(c, "invalid id")
+		return
+	}
+	actor := ctxutil.ActorFromCtx(c.Request.Context())
+	resp, err := h.svc.GetByID(c.Request.Context(), actor, id)
+	if err != nil {
+		if errors.Is(err, service.ErrProviderConfigNotFound) {
+			result.NotFound(c, "provider config not found")
+			return
+		}
 		result.InternalError(c, err.Error())
 		return
 	}
@@ -46,4 +70,23 @@ func (h *ProviderConfigHandler) Save(c *gin.Context) {
 	}
 
 	result.OK(c, resp)
+}
+
+func (h *ProviderConfigHandler) Delete(c *gin.Context) {
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		result.BadRequest(c, "invalid id")
+		return
+	}
+
+	actor := ctxutil.ActorFromCtx(c.Request.Context())
+	if err := h.svc.Delete(c.Request.Context(), actor, id); err != nil {
+		if errors.Is(err, service.ErrProviderConfigNotFound) {
+			result.NotFound(c, "provider config not found")
+			return
+		}
+		result.InternalError(c, err.Error())
+		return
+	}
+	result.OK(c, nil)
 }
