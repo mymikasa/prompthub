@@ -7,6 +7,8 @@ import { ForgotPasswordPage } from '@/features/auth/forgot-password-page';
 import { PromptListPage } from '@/features/prompts/prompt-list-page';
 import { PromptDetailPage } from '@/features/prompts/prompt-detail-page';
 import { VersionDetailPage } from '@/features/prompts/version-detail-page';
+import { CreatePromptPage } from '@/features/prompts/create-prompt-page';
+import { SettingsPage } from '@/features/settings/settings-page';
 
 export const router = createBrowserRouter([
   {
@@ -23,11 +25,7 @@ export const router = createBrowserRouter([
       { path: '/prompts', element: <PromptListPage /> },
       {
         path: '/prompts/new',
-        element: (
-          <div className="flex items-center justify-center py-20 text-text-muted text-sm">
-            创建提示词（开发中）
-          </div>
-        ),
+        element: <CreatePromptPage />,
       },
       {
         path: '/prompts/:promptId',
@@ -55,19 +53,11 @@ export const router = createBrowserRouter([
       },
       {
         path: '/settings',
-        element: (
-          <div className="flex items-center justify-center py-20 text-text-muted text-sm">
-            设置页（开发中）
-          </div>
-        ),
+        element: <SettingsPage />,
       },
       {
         path: '/settings/provider',
-        element: (
-          <div className="flex items-center justify-center py-20 text-text-muted text-sm">
-            模型提供方配置（开发中）
-          </div>
-        ),
+        element: <SettingsPage />,
       },
     ],
   },
