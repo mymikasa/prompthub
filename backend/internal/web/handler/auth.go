@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/mymikasa/prompthub/internal/service"
 	"github.com/mymikasa/prompthub/internal/web/result"
+	"github.com/mymikasa/prompthub/pkg/ctxutil"
 	"github.com/mymikasa/prompthub/pkg/session"
 )
 
@@ -123,12 +124,13 @@ func (h *AuthHandler) Me(c *gin.Context) {
 		return
 	}
 
-	workspaceID := session.WorkspaceIDFromContext(c)
+	actor := ctxutil.ActorFromCtx(c.Request.Context())
 
 	result.OK(c, gin.H{
 		"id":           user.ID,
 		"email":        user.Email,
 		"name":         user.Nickname,
-		"workspace_id": workspaceID,
+		"workspace_id": actor.WorkspaceID,
+		"role":         actor.Role,
 	})
 }

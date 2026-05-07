@@ -40,17 +40,21 @@ func main() {
 
 	userDAO := dao.NewUserDAO(db)
 	workspaceDAO := dao.NewWorkspaceDAO(db)
+	promptDAO := dao.NewPromptDAO(db)
 
 	userRepo := repo.NewUserRepo(userDAO)
 	workspaceRepo := repo.NewWorkspaceRepo(workspaceDAO)
+	promptRepo := repo.NewPromptRepo(promptDAO)
 
 	authService := service.NewAuthService(userRepo, workspaceRepo)
+	promptService := service.NewPromptService(promptRepo)
 
 	healthHandler := handler.NewHealthHandler(db)
 	authHandler := handler.NewAuthHandler(authService, cfg.SessionSecret, cfg.IsDev())
+	promptHandler := handler.NewPromptHandler(promptService)
 
 	engine := gin.New()
-	router.Setup(engine, healthHandler, authHandler, cfg.SessionSecret, userRepo)
+	router.Setup(engine, healthHandler, authHandler, promptHandler, cfg.SessionSecret, userRepo, workspaceRepo)
 
 	slog.Info("server starting", slog.String("addr", cfg.HTTPAddr))
 	if err := engine.Run(cfg.HTTPAddr); err != nil {

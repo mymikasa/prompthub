@@ -31,7 +31,14 @@ func (r *userRepo) FindByEmail(ctx context.Context, email string) (*domain.User,
 }
 
 func (r *userRepo) Create(ctx context.Context, user *domain.User) error {
-	return r.dao.Create(ctx, toModelUser(user))
+	m := toModelUser(user)
+	if err := r.dao.Create(ctx, m); err != nil {
+		return err
+	}
+	user.ID = m.ID
+	user.CreatedAt = m.CreatedAt
+	user.UpdatedAt = m.UpdatedAt
+	return nil
 }
 
 func (r *userRepo) FindByID(ctx context.Context, id int64) (*domain.User, error) {
