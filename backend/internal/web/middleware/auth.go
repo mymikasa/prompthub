@@ -18,7 +18,7 @@ func Auth(sessionSecret string, userRepo repo.UserRepo) gin.HandlerFunc {
 			return
 		}
 
-		user, err := userRepo.FindByID(sess.UserID)
+		user, err := userRepo.FindByID(c.Request.Context(), sess.UserID)
 		if err != nil {
 			result.Unauthorized(c, "user not found")
 			return

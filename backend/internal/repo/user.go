@@ -1,9 +1,13 @@
 package repo
 
-import "github.com/mymikasa/prompthub/internal/domain"
+import (
+	"context"
+
+	"github.com/mymikasa/prompthub/internal/domain"
+)
 
 type UserRepo interface {
-	FindByEmail(email string) (*domain.User, error)
-	Create(user *domain.User) error
-	FindByID(id int64) (*domain.User, error)
+	FindByEmail(ctx context.Context, email string) (*domain.User, error)
+	Create(ctx context.Context, user *domain.User) error
+	FindByID(ctx context.Context, id int64) (*domain.User, error)
 }

@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -35,8 +36,8 @@ type LoginRequest struct {
 	Password string `json:"password" binding:"required"`
 }
 
-func (s *AuthService) Signup(req *SignupRequest) (*domain.User, error) {
-	_, err := s.userRepo.FindByEmail(req.Email)
+func (s *AuthService) Signup(ctx context.Context, req *SignupRequest) (*domain.User, error) {
+	_, err := s.userRepo.FindByEmail(ctx, req.Email)
 	if err == nil {
 		return nil, errors.New("email already registered")
 	}
@@ -54,7 +55,7 @@ func (s *AuthService) Signup(req *SignupRequest) (*domain.User, error) {
 		PasswordHash: string(hash),
 		Nickname:     req.Name,
 	}
-	if err := s.userRepo.Create(user); err != nil {
+	if err := s.userRepo.Create(ctx, user); err != nil {
 		return nil, err
 	}
 
@@ -62,7 +63,7 @@ func (s *AuthService) Signup(req *SignupRequest) (*domain.User, error) {
 		Name:    fmt.Sprintf("%s's Workspace", req.Name),
 		OwnerID: user.ID,
 	}
-	if err := s.workspaceRepo.Create(ws); err != nil {
+	if err := s.workspaceRepo.Create(ctx, ws); err != nil {
 		return nil, err
 	}
 
@@ -71,15 +72,15 @@ func (s *AuthService) Signup(req *SignupRequest) (*domain.User, error) {
 		UserID:      user.ID,
 		Role:        "owner",
 	}
-	if err := s.workspaceRepo.AddMember(member); err != nil {
+	if err := s.workspaceRepo.AddMember(ctx, member); err != nil {
 		return nil, err
 	}
 
 	return user, nil
 }
 
-func (s *AuthService) Login(req *LoginRequest) (*domain.User, error) {
-	user, err := s.userRepo.FindByEmail(req.Email)
+func (s *AuthService) Login(ctx context.Context, req *LoginRequest) (*domain.User, error) {
+	user, err := s.userRepo.FindByEmail(ctx, req.Email)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("invalid email or password")
@@ -94,8 +95,8 @@ func (s *AuthService) Login(req *LoginRequest) (*domain.User, error) {
 	return user, nil
 }
 
-func (s *AuthService) GetCurrentUser(userID int64) (*domain.User, error) {
-	user, err := s.userRepo.FindByID(userID)
+func (s *AuthService) GetCurrentUser(ctx context.Context, userID int64) (*domain.User, error) {
+	user, err := s.userRepo.FindByID(ctx, userID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, ErrUserNotFound
@@ -105,6 +106,6 @@ func (s *AuthService) GetCurrentUser(userID int64) (*domain.User, error) {
 	return user, nil
 }
 
-func (s *AuthService) GetUserWorkspace(userID int64) (*domain.Workspace, error) {
-	return s.workspaceRepo.FindByUserID(userID)
+func (s *AuthService) GetUserWorkspace(ctx context.Context, userID int64) (*domain.Workspace, error) {
+	return s.workspaceRepo.FindByUserID(ctx, userID)
 }

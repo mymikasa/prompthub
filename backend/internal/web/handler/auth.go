@@ -41,14 +41,14 @@ func (h *AuthHandler) Signup(c *gin.Context) {
 		return
 	}
 
-	user, err := h.authService.Signup(&req)
+	user, err := h.authService.Signup(c.Request.Context(), &req)
 	if err != nil {
 		slog.Error("signup failed", slog.String("error", err.Error()))
 		result.BadRequest(c, err.Error())
 		return
 	}
 
-	ws, err := h.authService.GetUserWorkspace(user.ID)
+	ws, err := h.authService.GetUserWorkspace(c.Request.Context(), user.ID)
 	if err != nil {
 		result.InternalError(c, "failed to get workspace")
 		return
@@ -62,9 +62,9 @@ func (h *AuthHandler) Signup(c *gin.Context) {
 	session.SetCookie(c, sess, h.sessionSecret, h.isDev)
 
 	result.Created(c, gin.H{
-		"id":       user.ID,
-		"email":    user.Email,
-		"name": user.Nickname,
+		"id":    user.ID,
+		"email": user.Email,
+		"name":  user.Nickname,
 	})
 }
 
@@ -75,13 +75,13 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	user, err := h.authService.Login(&req)
+	user, err := h.authService.Login(c.Request.Context(), &req)
 	if err != nil {
 		result.Unauthorized(c, err.Error())
 		return
 	}
 
-	ws, err := h.authService.GetUserWorkspace(user.ID)
+	ws, err := h.authService.GetUserWorkspace(c.Request.Context(), user.ID)
 	if err != nil {
 		result.InternalError(c, "failed to get workspace")
 		return
@@ -95,9 +95,9 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	session.SetCookie(c, sess, h.sessionSecret, h.isDev)
 
 	result.OK(c, gin.H{
-		"id":       user.ID,
-		"email":    user.Email,
-		"name": user.Nickname,
+		"id":    user.ID,
+		"email": user.Email,
+		"name":  user.Nickname,
 	})
 }
 
@@ -113,7 +113,7 @@ func (h *AuthHandler) Me(c *gin.Context) {
 		return
 	}
 
-	user, err := h.authService.GetCurrentUser(userID)
+	user, err := h.authService.GetCurrentUser(c.Request.Context(), userID)
 	if err != nil {
 		if errors.Is(err, service.ErrUserNotFound) {
 			result.NotFound(c, "user not found")
@@ -128,7 +128,7 @@ func (h *AuthHandler) Me(c *gin.Context) {
 	result.OK(c, gin.H{
 		"id":           user.ID,
 		"email":        user.Email,
-		"nickname":     user.Nickname,
+		"name":         user.Nickname,
 		"workspace_id": workspaceID,
 	})
 }
